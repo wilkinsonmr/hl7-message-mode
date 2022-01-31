@@ -74,6 +74,9 @@ ELEMENT_ID is like ORC.7.10.1"
   :type '(file)
   :group 'hl7-message)
 
+(defvar hl7-segment-defs nil
+  "Alist of segment definitions.")
+
 (defun hl7-load-segment-defs ()
   "Load the TSV of segment descriptions into `hl7-segment-defs'."
   (if hl7-segment-definition-file
@@ -103,7 +106,7 @@ ELEMENT_ID is like ORC.7.10.1"
   (let* ((fields (split-string segment "|")) ; TODO: get this from MSH.1
          (seg-name (car fields))
          (field-n -1)
-         field-nest msh.2 )
+         field-id field-nest msh.2 )
     ;; Handle MSH specially
     (when (string= seg-name "MSH")
       (setq fields (cons (car fields) (cons "|" (cdr fields))))
