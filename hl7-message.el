@@ -203,7 +203,6 @@ ELEMENT_ID is like ORC.7.10.1"
          (seg-def (hl7-lookup-segment-def seg-id hl7-segment-defs)))
     ;; FIXME: only lookup if seg id, not values
     ;; TODO: if "", display as (null)
-    (message "%S" seg-id)
     (if (string= seg-id "")
         (insert "(null)")
       (insert seg-id))
