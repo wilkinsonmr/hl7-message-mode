@@ -321,10 +321,45 @@ Non-nil RM-NULL omits null entries."
   (interactive)
   (hl7-display-buffer-as-text t buffer))
 
+(defun hl7-message-mode-eldoc ()
+  "Eldoc function for hl7 message mode."
+  (let* ((beg (line-beginning-position))
+         (end (line-end-position))
+         (pt (point))
+         seg-name field-beg field-end field-nbr comp-beg comp-end comp-nbr
+         n-comps subc-nbr n-subcs n-reps rep-nbr)
+    (setq seg-name (buffer-substring-no-properties beg (min (+ beg 3) (point-max))))
+    (when (= 3 (length seg-name))
+      ; FIXME: handle MSH segments
+      (setq field-beg (save-excursion (or (search-backward "|" beg t) beg))
+            field-end (save-excursion (or (search-forward "|" end t) end))
+            field-nbr (how-many "|" beg pt)
+            comp-beg (save-excursion (or (search-backward "\\^" field-beg t) field-beg))
+            comp-end (save-excursion (or (search-forward "\\^" field-end t) field-end))
+            comp-nbr (1+ (how-many "\\^" field-beg pt)) ; FIXME: if reps, renumber
+            n-comps (how-many "\\^" field-beg field-end)
+            subc-nbr (1+ (how-many "&" comp-beg pt))
+            n-subcs (how-many "&" comp-beg comp-end)
+            n-reps (how-many "~" field-beg field-end)
+            rep-nbr (if (> n-reps 0)
+                        (concat "/" (number-to-string (1+ (how-many "~" field-beg pt))))
+                      ""))
+      (cond
+       ((zerop field-nbr)
+        seg-name)
+       ((zerop n-comps)
+        (format "%s.%s%s" seg-name field-nbr rep-nbr))
+       ((zerop n-subcs)
+        (format "%s.%s.%s%s" seg-name field-nbr comp-nbr rep-nbr))
+       (t
+        (format "%s.%s.%s.%s%s" seg-name field-nbr comp-nbr subc-nbr rep-nbr))))))
+
 ;;;###autoload
 (define-derived-mode hl7-message-mode fundamental-mode "HL7"
   "Major mode for viewing HL7 messages."
-  (setq font-lock-defaults '((hl7-message-font-lock-defaults) nil t)))
+  (setq font-lock-defaults '((hl7-message-font-lock-defaults) nil t))
+  (add-function :before-until (local 'eldoc-documentation-function)
+                #'hl7-message-mode-eldoc))
 
 (provide 'hl7-message)
 
