@@ -327,7 +327,7 @@ Non-nil RM-NULL omits null entries."
          (end (line-end-position))
          (pt (point))
          seg-name field-beg field-end field-nbr comp-beg comp-end comp-nbr
-         n-comps subc-nbr n-subcs n-reps rep-nbr msh-adj line-pos)
+         n-comps subc-nbr n-subcs rep-beg rep-end n-reps rep-nbr msh-adj line-pos)
     (setq seg-name (buffer-substring-no-properties beg (min (+ beg 3) (point-max))))
     (when (= 3 (length seg-name))
       (setq field-beg (save-excursion (or (search-backward "|" beg t) beg))
