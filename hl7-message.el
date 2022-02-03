@@ -327,10 +327,9 @@ Non-nil RM-NULL omits null entries."
          (end (line-end-position))
          (pt (point))
          seg-name field-beg field-end field-nbr comp-beg comp-end comp-nbr
-         n-comps subc-nbr n-subcs n-reps rep-nbr)
+         n-comps subc-nbr n-subcs n-reps rep-nbr msh-adj)
     (setq seg-name (buffer-substring-no-properties beg (min (+ beg 3) (point-max))))
     (when (= 3 (length seg-name))
-      ; FIXME: handle MSH segments
       (setq field-beg (save-excursion (or (search-backward "|" beg t) beg))
             field-end (save-excursion (or (search-forward "|" end t) end))
             field-nbr (how-many "|" beg pt)
@@ -345,16 +344,33 @@ Non-nil RM-NULL omits null entries."
             comp-nbr (1+ (how-many "\\^" rep-beg pt))
             n-comps (how-many "\\^" comp-beg comp-end)
             subc-nbr (1+ (how-many "&" comp-beg pt))
-            n-subcs (how-many "&" comp-beg comp-end))
+            n-subcs (how-many "&" comp-beg comp-end)
+            line-pos (+ 1 (current-column))
+            msh-adj 0)
+      ;; Handle MSH segments
+      (when (string= seg-name "MSH")
+        (cond
+         ((= 4 line-pos)
+          (setq n-comps 0
+                rep-nbr ""
+                msh-adj 0
+                field-nbr 1))
+         ((<= 5 line-pos 9)
+          (setq n-comps 0
+                rep-nbr ""
+                msh-adj 0
+                field-nbr 2))
+         (t
+          (setq msh-adj 1))))
       (cond
        ((zerop field-nbr)
         seg-name)
        ((zerop n-comps)
-        (format "%s.%s%s" seg-name field-nbr rep-nbr))
+        (format "%s.%s%s" seg-name (+ field-nbr msh-adj) rep-nbr))
        ((zerop n-subcs)
-        (format "%s.%s.%s%s" seg-name field-nbr comp-nbr rep-nbr))
+        (format "%s.%s.%s%s" seg-name (+ field-nbr msh-adj) comp-nbr rep-nbr))
        (t
-        (format "%s.%s.%s.%s%s" seg-name field-nbr comp-nbr subc-nbr rep-nbr))))))
+        (format "%s.%s.%s.%s%s" seg-name (+ field-nbr msh-adj) comp-nbr subc-nbr rep-nbr))))))
 
 ;;;###autoload
 (define-derived-mode hl7-message-mode fundamental-mode "HL7"
