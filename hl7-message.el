@@ -215,9 +215,9 @@ ELEMENT_ID is like ORC.7.10.1"
     (when-let ((opt (nth 4 seg-def)))
       ;; Optionality
       (insert (pcase opt
-                ("R" " (R)")
+                ("R" " (Req)")
                 ("O" "")
-                ("C" " (C)")
+                ("C" " (Cond)")
                 ("B" " (B)")
                 ("X" "")
                 (_ (format " (%s)" opt))) ))))
