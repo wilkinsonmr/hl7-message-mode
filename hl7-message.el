@@ -101,67 +101,64 @@ ELEMENT_ID is like ORC.7.10.1"
   "Return the alist associated with SEG-ID from SEGMENT-DEFS."
   (assoc seg-id segment-defs 'string=))
 
-(defun hl7-segment-to-nested-list (segment)
+(defun hl7-comp-to-subcomp-nested-list (comp comp-id)
+  "Convert an HL7 field COMP to a nested list."
+  (let* ((subcomps (split-string comp "&"))
+         (n (length subcomps))
+         (subcomp-nest (seq-mapn
+                        (lambda (cid idx subcomp)
+                          (let ((subcomp-id (format "%s.%d" cid idx)))
+                            (append (list subcomp-id)
+                                    (list (list subcomp)))))
+                        (make-list n comp-id)
+                        (number-sequence 1 n)
+                        subcomps)))
+    (append (list comp-id) subcomp-nest)))
+
+(defun hl7-field-to-comp-nested-list (field field-id)
+  "Convert an HL7 segment FIELD to a nested list."
+  (let* ((comps (split-string field "\\^"))
+         (n (length comps))
+         (comp-nest (seq-mapn
+                     (lambda (fid idx comp)
+                       (let ((comp-id (format "%s.%d" fid idx)))
+                         (if (string-match-p "&" comp)
+                             (hl7-comp-to-subcomp-nested-list comp comp-id)
+                           (append (list comp-id) (list (list comp))))))
+                     (make-list n field-id)
+                     (number-sequence 1 n)
+                     comps)))
+    (append (list field-id) comp-nest)))
+
+(defun hl7-segment-to-field-nested-list (segment)
   "Convert an HL7 SEGMENT (line) to a nested list."
   (let* ((fields (split-string segment "|")) ; TODO: get this from MSH.1
-         (seg-name (car fields))
-         (field-n -1)
-         field-id field-nest msh.2 )
-    ;; Handle MSH specially
-    (when (string= seg-name "MSH")
-      (setq fields (cons (car fields) (cons "|" (cdr fields))))
+         (n (length fields))
+         (seg-id (car fields))
+         field-nest msh.2)
+    ;; Special handling for MSH segment
+    (when (string= seg-id "MSH")
+      ;; Insert "|" as MSH.1
+      (setq fields (nconc (list (car fields)) '("|") (cdr fields))
+            n (1+ n))
+      ;; Save current MSH.2 and prevent further splitting of MSH.2
       (setq msh.2 (nth 2 fields))
-      ;; TODO: replace all of the encoding characters with unsplittable text
-      (setf (nth 2 fields)
-            (replace-regexp-in-string "\\^" "CARET" (nth 2 fields)))
-      (setf (nth 2 fields)
-            (replace-regexp-in-string "&" "AMPERSAND" (nth 2 fields))))
+      (setf (nth 2 fields) ""))
     (setq field-nest
-          ;; TODO: factor this out into three separate functions
-          (mapcar
-           #'(lambda (field)
-               (setq field-n (1+ field-n)
-                     field-id (format "%s.%d" seg-name field-n))
-               (if (string-match-p "\\^" field) ; Don't expand if not multi-component
-                   (let* ((comps (split-string field "\\^"))
-                          (comp-n 0)
-                          (comp-id nil)
-                          (comp-nest
-                           (mapcar
-                            #'(lambda (comp)
-                                (setq comp-n (1+ comp-n)
-                                      comp-id (format "%s.%d.%d"
-                                                      seg-name
-                                                      field-n
-                                                      comp-n))
-                                ;; (defun subcomponents comp comp-n comp-id sub-sep
-                                ;; return this:
-                                (if (string-match-p "&" comp)
-                                    (let* ((subcomps (split-string comp "&"))
-                                           (subcomp-n 0)
-                                           (subcomp-id nil)
-                                           (subcomp-nest
-                                            (mapcar
-                                             #'(lambda (subcomp)
-                                                 (setq subcomp-n (1+ subcomp-n)
-                                                       subcomp-id (format "%s.%d.%d.%d"
-                                                                          seg-name
-                                                                          field-n
-                                                                          comp-n
-                                                                          subcomp-n))
-                                                 (append (list subcomp-id) (list (list subcomp))))
-                                             subcomps)))
-                                      (append (list comp-id) subcomp-nest))
-                                  (append (list comp-id) (list (list comp)))))
-                            comps)))
-                     (append (list field-id) comp-nest))
-                 (append (list field-id) (list (list field)))
-                 ))
+          (seq-mapn
+           (lambda (sid idx field)
+             (let ((field-id (format "%s.%d" sid idx)))
+               (message "%S" field-id)
+               (if (string-match-p "\\^" field)
+                   (hl7-field-to-comp-nested-list field field-id)
+                 (append (list field-id) (list (list field))))))
+           (make-list n seg-id)
+           (number-sequence 0 n)
            fields))
     (when msh.2
-      ;; Restore original msh.2 encoding characters
+      ;; Restore original MSH.2 encoding characters
       (setf (cdr (nth 1 (cdr field-nest))) (list (list msh.2))))
-    (append (list seg-name) (cdr field-nest))))
+    (append (list seg-id) (cdr field-nest))))
 
 (defun hl7-buffer-to-nested-list (&optional buffer)
   "Convert an HL7 message in the current buffer or BUFFER to a nested list."
@@ -189,7 +186,7 @@ ELEMENT_ID is like ORC.7.10.1"
           (setq segment (buffer-substring-no-properties
                          ;; TODO: just end-of-line?
                          (point) (progn (end-of-line 1) (point)))
-                segment-nest (hl7-segment-to-nested-list segment)
+                segment-nest (hl7-segment-to-field-nested-list segment)
                 root (append root (list segment-nest)))
           (forward-line 1)))
       root)))
