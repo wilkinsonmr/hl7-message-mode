@@ -84,16 +84,13 @@ ELEMENT_ID is like ORC.7.10.1"
             (with-temp-buffer
               (insert-file-contents hl7-segment-definition-file)
               (goto-char (point-min))
-              (let (desc fields id seg-id seg-desc rtn)
+              (let (desc fields rtn)
                 (while (not (eobp))
                   (setq desc (buffer-substring-no-properties
                               (point) (progn (forward-line 1) (point)))
                         desc (string-trim-right desc "\n")
-                        fields (split-string desc "\t")
-                        id (split-string (car fields) " - " nil " ")
-                        seg-id (car id)
-                        seg-desc (list (string-join (cdr id) " - ")))
-                  (push (cons seg-id (append seg-desc (cdr fields))) rtn))
+                        fields (split-string desc "\t"))
+                  (push fields rtn))
                 rtn)))
     (message "No segment definition file found.")))
 
