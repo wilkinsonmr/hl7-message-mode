@@ -102,7 +102,7 @@ ELEMENT_ID is like ORC.7.10.1"
   (assoc seg-id segment-defs 'string=))
 
 (defun hl7-comp-to-subcomp-nested-list (comp comp-id)
-  "Convert an HL7 field COMP to a nested list."
+  "Convert an HL7 rep COMP to a nested list."
   (let* ((subcomps (split-string comp "&"))
          (n (length subcomps))
          (subcomp-nest (seq-mapn
@@ -130,6 +130,36 @@ ELEMENT_ID is like ORC.7.10.1"
                      comps)))
     (append (list field-id) comp-nest)))
 
+(defun hl7-rep-to-comp-nested-list (rep rep-id)
+  "Convert an HL7 field REP to a nested list."
+  (let* ((comps (split-string rep "\\^"))
+         (n (length comps))
+         (comp-nest (seq-mapn
+                     (lambda (fid idx comp)
+                       (let ((comp-id (format "%s.%d" fid idx)))
+                         (if (string-match-p "&" comp)
+                             (hl7-comp-to-subcomp-nested-list comp comp-id)
+                           (append (list comp-id) (list (list comp))))))
+                     (make-list n rep-id)
+                     (number-sequence 1 n)
+                     comps)))
+    (append (list rep-id) comp-nest)))
+
+(defun hl7-field-to-rep-nested-list (field field-id)
+  "Convert an HL7 segment FIELD to a nested list."
+  (let* ((reps (split-string field "~"))
+         (n (length reps))
+         (rep-nest (seq-mapn
+                     (lambda (fid idx rep)
+                       (let ((rep-id (format "%s[%d]" fid idx)))
+                         (if (string-match-p "\\^" rep)
+                             (hl7-rep-to-comp-nested-list rep rep-id)
+                           (append (list rep-id) (list (list rep))))))
+                     (make-list n field-id)
+                     (number-sequence 1 n)
+                     reps)))
+    (append (list field-id) rep-nest)))
+
 (defun hl7-segment-to-field-nested-list (segment)
   "Convert an HL7 SEGMENT (line) to a nested list."
   (let* ((fields (split-string segment "|")) ; TODO: get this from MSH.1
@@ -148,9 +178,9 @@ ELEMENT_ID is like ORC.7.10.1"
           (seq-mapn
            (lambda (sid idx field)
              (let ((field-id (format "%s.%d" sid idx)))
-               (if (string-match-p "\\^" field)
-                   (hl7-field-to-comp-nested-list field field-id)
-                 (append (list field-id) (list (list field))))))
+               (if (string-match-p "~" field)
+                   (hl7-field-to-rep-nested-list field field-id)
+                 (hl7-field-to-comp-nested-list field field-id))))
            (make-list n seg-id)
            (number-sequence 0 n)
            fields))
@@ -198,13 +228,14 @@ ELEMENT_ID is like ORC.7.10.1"
   "Insert the properly indented HL7 segment/field ID ITEM.  INDENT is ignored."
   (unless (bound-and-true-p hl7-segment-defs) ; TODO: get from MSH.12?
     (hl7-load-segment-defs))
-  (let* ((seg-id (cadr item))
+  (let* ((seg-lbl (cadr item))
+         (seg-id (replace-regexp-in-string "\\[[0-9]+\\]" "" seg-lbl))
          (seg-def (hl7-lookup-segment-def seg-id hl7-segment-defs)))
     ;; FIXME: only lookup if seg id, not values
     ;; TODO: if "", display as (null)
-    (if (string= seg-id "")
+    (if (string= seg-lbl "")
         (insert "(null)")
-      (insert seg-id))
+      (insert seg-lbl))
     (when-let ((name (nth 1 seg-def)))
       ;; Name
       (insert " - " name))
@@ -232,15 +263,15 @@ ELEMENT_ID is like ORC.7.10.1"
 
 (defun hl7-hier-labelfn-button-action (item indent)
   "Define the action for a hierarchy button (link) for ITEM.  INDENT is ignored."
-  (let* ((ref (cadr item))
+  (let* ((ref-id (replace-regexp-in-string "\\[[0-9]+\\]" "" (cadr item)))
          (url (format
                "https://hl7-definition.caristix.com/v2/HL7v2.5.1/%s/%s"
-               (pcase (cl-count ?. ref)
+               (pcase (cl-count ?. ref-id)
                  (0 "Segments")
                  (1 "Fields")
                  (2 "Fields")
                  (3 "Fields"))
-               ref)))
+               ref-id)))
     (browse-url url)))
 
 (defun hl7-prune-null-from-nested-list (nest)
