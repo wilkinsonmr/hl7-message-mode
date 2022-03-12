@@ -148,7 +148,6 @@ ELEMENT_ID is like ORC.7.10.1"
           (seq-mapn
            (lambda (sid idx field)
              (let ((field-id (format "%s.%d" sid idx)))
-               (message "%S" field-id)
                (if (string-match-p "\\^" field)
                    (hl7-field-to-comp-nested-list field field-id)
                  (append (list field-id) (list (list field))))))
