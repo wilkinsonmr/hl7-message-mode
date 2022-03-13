@@ -222,9 +222,31 @@ ELEMENT_ID is like ORC.7.10.1"
           (forward-line 1)))
       root)))
 
+(defun hl7-hier-add-annotation (hierarchy)
+  "Add additional annotation to HIERARCHY's nodes."
+  (hierarchy-map
+   (lambda (item indent)
+     (when-let* ((parent (hierarchy-parent msg-hier item))
+                 (seg-lbl (or (cadr parent) ""))
+                 (seg-id (replace-regexp-in-string "\\[[0-9]+\\]" "" seg-lbl))
+                 (seg-def (hl7-lookup-segment-def seg-id hl7-segment-defs)))
+       ;; Add table reference from parent description
+       (when-let ((tbl (nth 6 seg-def)))
+         (when (= 2 (length item))
+           ;; Set this here so we can link nulls with tables
+           (when (string-empty-p (nth 1 item))
+             (setcdr item (list "(null)")))
+           (put-text-property 0 (length (nth 1 item)) 'table tbl (nth 1 item))))))
+   hierarchy 0))
+
 (defun hl7-hier-item-is-leaf-p (item indent)
   "Return non-nil if ITEM is a leaf.  INDENT is ignored."
   (not (and (listp item) (= 1 (length (cdr item))))))
+
+(defun hl7-hier-make-button-p (item indent)
+  "Return non-nill if a button should be made for ITEM.  INDENT is ignored."
+  (or (hl7-hier-item-is-leaf-p item indent)
+      (get-text-property 0 'table (nth 1 item))))
 
 (defun hl7-hier-labelfn-button-label (item indent)
   "Insert the properly indented HL7 segment/field ID ITEM.  INDENT is ignored."
@@ -249,29 +271,22 @@ ELEMENT_ID is like ORC.7.10.1"
                 ("X" "")
                 (_ (format " (%s)" opt))) ))))
 
-;; TODO: Add hyperlink info via text properties rather parsing segment ID
-;; If URL is provided by the checker, and cannot be composed
-;; from other elements in the `flycheck-error' object, consider
-;; passing the URL via text properties:
-;;
-;; ;; During the error object creation
-;; (put-text-property 0 1 'explainer-url .url .check_id)
-;;
-;; ;; In the error-explainer FUNCTION
-;; (let ((id (flycheck-error-id err)))
-;;   (and id `(url . ,(get-text-property 0 'explainer-url id))))
-
 (defun hl7-hier-labelfn-button-action (item indent)
   "Define the action for a hierarchy button (link) for ITEM.  INDENT is ignored."
   (let* ((ref-id (replace-regexp-in-string "\\[[0-9]+\\]" "" (cadr item)))
-         (url (format
-               "https://hl7-definition.caristix.com/v2/HL7v2.5.1/%s/%s"
-               (pcase (cl-count ?. ref-id)
-                 (0 "Segments")
-                 (1 "Fields")
-                 (2 "Fields")
-                 (3 "Fields"))
-               ref-id)))
+         url)
+    (if-let ((table (get-text-property 0 'table (nth 1 item))))
+        (setq url (format
+                   "https://hl7-definition.caristix.com/v2/HL7v2.5.1/%s/%s"
+                   "Tables" table))
+      (setq url (format
+                 "https://hl7-definition.caristix.com/v2/HL7v2.5.1/%s/%s"
+                 (pcase (cl-count ?. ref-id)
+                   (0 "Segments")
+                   (1 "Fields")
+                   (2 "Fields")
+                   (3 "Fields"))
+                 ref-id)))
     (browse-url url)))
 
 (defun hl7-prune-null-from-nested-list (nest)
@@ -299,13 +314,14 @@ Non-nil RM-NULL omits null entries."
                        (hl7-prune-null-from-nested-list msg-nest)
                      msg-nest))
          (msg-hier (hierarchy-from-list msg-nest 'allow-dups)))
+    (hl7-hier-add-annotation msg-hier)
     (switch-to-buffer
      (hierarchy-tree-display
       msg-hier
       (hierarchy-labelfn-indent
        (hierarchy-labelfn-button-if
         'hl7-hier-labelfn-button-label
-        'hl7-hier-item-is-leaf-p
+        'hl7-hier-make-button-p
         'hl7-hier-labelfn-button-action)
        ;; No additional indentation
        "")
@@ -332,13 +348,14 @@ Non-nil RM-NULL omits null entries."
                        (hl7-prune-null-from-nested-list msg-nest)
                      msg-nest))
          (msg-hier (hierarchy-from-list msg-nest 'allow-dups)))
+    (hl7-hier-add-annotation msg-hier)
     (switch-to-buffer
      (hierarchy-tabulated-display
       msg-hier
       (hierarchy-labelfn-indent
        (hierarchy-labelfn-button-if
         'hl7-hier-labelfn-button-label
-        'hl7-hier-item-is-leaf-p
+        'hl7-hier-make-button-p
         'hl7-hier-labelfn-button-action))
       text-buf))))
 
