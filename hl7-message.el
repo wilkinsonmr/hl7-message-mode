@@ -77,12 +77,13 @@ ELEMENT_ID is like ORC.7.10.1"
 (defvar hl7-segment-defs nil
   "Alist of segment definitions.")
 
-(defun hl7-load-segment-defs ()
+(defun hl7-load-segment-defs (&optional file)
   "Load the TSV of segment descriptions into `hl7-segment-defs'."
-  (if hl7-segment-definition-file
+  (interactive)
+  (if-let ((file (or file hl7-segment-definition-file)))
       (setq hl7-segment-defs
             (with-temp-buffer
-              (insert-file-contents hl7-segment-definition-file)
+              (insert-file-contents file)
               (goto-char (point-min))
               (let (desc fields rtn)
                 (while (not (eobp))
