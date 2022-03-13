@@ -233,21 +233,19 @@ ELEMENT_ID is like ORC.7.10.1"
   (let* ((seg-lbl (cadr item))
          (seg-id (replace-regexp-in-string "\\[[0-9]+\\]" "" seg-lbl))
          (seg-def (hl7-lookup-segment-def seg-id hl7-segment-defs)))
-    ;; FIXME: only lookup if seg id, not values
-    ;; TODO: if "", display as (null)
     (if (string= seg-lbl "")
         (insert "(null)")
       (insert seg-lbl))
     (when-let ((name (nth 1 seg-def)))
-      ;; Name
+      ;; Name label
       (insert " - " name))
     (when-let ((opt (nth 4 seg-def)))
-      ;; Optionality
+      ;; Optionality label
       (insert (pcase opt
-                ("R" " (Req)")
+                ("R" "*")
                 ("O" "")
-                ("C" " (Cond)")
-                ("B" " (B)")
+                ("C" "*")
+                ("B" "")
                 ("X" "")
                 (_ (format " (%s)" opt))) ))))
 
