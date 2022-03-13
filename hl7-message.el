@@ -226,7 +226,7 @@ ELEMENT_ID is like ORC.7.10.1"
   "Add additional annotation to HIERARCHY's nodes."
   (hierarchy-map
    (lambda (item indent)
-     (when-let* ((parent (hierarchy-parent msg-hier item))
+     (when-let* ((parent (hierarchy-parent hierarchy item))
                  (seg-lbl (or (cadr parent) ""))
                  (seg-id (replace-regexp-in-string "\\[[0-9]+\\]" "" seg-lbl))
                  (seg-def (hl7-lookup-segment-def seg-id hl7-segment-defs)))
