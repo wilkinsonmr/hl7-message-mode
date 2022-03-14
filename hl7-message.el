@@ -234,8 +234,9 @@ ELEMENT_ID is like ORC.7.10.1"
        (when-let ((tbl (nth 6 seg-def)))
          (when (= 2 (length item))
            ;; Set this here so we can link nulls with tables
+           ;; Deep copy to allow multiple property sets
            (when (string-empty-p (nth 1 item))
-             (setcdr item (list "(null)")))
+             (setcdr item (list (copy-sequence "(null)") )))
            (put-text-property 0 (length (nth 1 item)) 'table tbl (nth 1 item))))))
    hierarchy 0))
 
