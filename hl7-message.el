@@ -77,6 +77,7 @@ ELEMENT_ID is like ORC.7.10.1"
 (defvar hl7-segment-defs nil
   "Alist of segment definitions.")
 
+;;;###autoload
 (defun hl7-load-segment-defs (&optional file)
   "Load the TSV of segment descriptions into `hl7-segment-defs'."
   (interactive)
