@@ -246,7 +246,7 @@ ELEMENT_ID is like ORC.7.10.1"
   (not (and (listp item) (= 1 (length (cdr item))))))
 
 (defun hl7-hier-make-button-p (item indent)
-  "Return non-nill if a button should be made for ITEM.  INDENT is ignored."
+  "Return non-nil if a button should be made for ITEM.  INDENT is ignored."
   (or (hl7-hier-item-is-leaf-p item indent)
       (get-text-property 0 'table (nth 1 item))))
 
