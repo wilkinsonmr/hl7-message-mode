@@ -77,6 +77,22 @@ ELEMENT_ID is like ORC.7.10.1"
 (defvar hl7-segment-defs nil
   "Alist of segment definitions.")
 
+(defun hl7-forward-component ()
+  "Move point to the next HL7 component."
+  (interactive)
+  (or (re-search-forward "[|^&]" (line-end-position) t)
+      (forward-line 1)))
+
+(defun hl7-backward-component ()
+  "Move point to the previous HL7 component."
+  (interactive)
+  (cond
+   ((bolp)
+    (backward-char 1))
+   (t
+    (or (re-search-backward "[|^&]" (line-beginning-position) t)
+        (beginning-of-line)))))
+
 ;;;###autoload
 (defun hl7-load-segment-defs (&optional file)
   "Load the TSV of segment descriptions into `hl7-segment-defs'."
@@ -417,6 +433,15 @@ Non-nil RM-NULL omits null entries."
         (format "%s.%s.%s%s" seg-name (+ field-nbr msh-adj) comp-nbr rep-nbr))
        (t
         (format "%s.%s.%s.%s%s" seg-name (+ field-nbr msh-adj) comp-nbr subc-nbr rep-nbr))))))
+
+(eldoc-add-command 'hl7-forward-component 'hl7-backward-component)
+
+(defvar hl7-message-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [tab] 'hl7-forward-component)
+    (define-key map [backtab] 'hl7-backward-component)
+    map)
+  "Keymap of `hl7-message-mode'.")
 
 ;;;###autoload
 (define-derived-mode hl7-message-mode fundamental-mode "HL7"
