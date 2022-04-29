@@ -93,7 +93,6 @@ ELEMENT_ID is like ORC.7.10.1"
     (or (re-search-backward "[|^&]" (line-beginning-position) t)
         (beginning-of-line)))))
 
-;;;###autoload
 (defun hl7-load-segment-defs (&optional file)
   "Load the TSV of segment descriptions into `hl7-segment-defs'."
   (interactive)
@@ -319,8 +318,7 @@ ELEMENT_ID is like ORC.7.10.1"
                 x))
           nest))
 
-;;;###autoload
-(defun hl7-display-buffer-as-tree (&optional rm-null buffer)
+(defun hl7-as-tree (&optional rm-null buffer)
   "Display an HL7 message BUFFER as an interactive tree.
 
 Non-nil RM-NULL omits null entries."
@@ -347,14 +345,12 @@ Non-nil RM-NULL omits null entries."
     (tree-minor-mode 1)
     (tree-mode-expand-level 1)))
 
-;;;###autoload
-(defun hl7-display-buffer-as-tree-without-nulls (&optional buffer)
-  "Same as `hl7-display-buffer-as-tree' for BUFFER but omits null entries."
+(defun hl7-as-tree-no-nulls (&optional buffer)
+  "Same as `hl7-as-tree' for BUFFER but omits null entries."
   (interactive)
-  (hl7-display-buffer-as-tree t buffer))
+  (hl7-as-tree t buffer))
 
-;;;###autoload
-(defun hl7-display-buffer-as-text (&optional rm-null buffer)
+(defun hl7-as-list (&optional rm-null buffer)
   "Display an HL7 message BUFFER as indented text.
 
 Non-nil RM-NULL omits null entries."
@@ -377,11 +373,10 @@ Non-nil RM-NULL omits null entries."
         'hl7-hier-labelfn-button-action))
       text-buf))))
 
-;;;###autoload
-(defun hl7-display-buffer-as-text-without-nulls (&optional buffer)
-  "Same as `hl7-display-buffer-as-text' for BUFFER but omits null entries."
+(defun hl7-as-list-no-nulls (&optional buffer)
+  "Same as `hl7-as-list' for BUFFER but omits null entries."
   (interactive)
-  (hl7-display-buffer-as-text t buffer))
+  (hl7-as-list t buffer))
 
 (defun hl7-message-mode-eldoc ()
   "Eldoc function for hl7 message mode."
@@ -443,7 +438,6 @@ Non-nil RM-NULL omits null entries."
     map)
   "Keymap of `hl7-message-mode'.")
 
-;;;###autoload
 (define-derived-mode hl7-message-mode fundamental-mode "HL7"
   "Major mode for viewing HL7 messages."
   (setq font-lock-defaults '((hl7-message-font-lock-defaults) nil t))
