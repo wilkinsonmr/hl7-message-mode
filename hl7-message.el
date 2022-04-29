@@ -241,6 +241,7 @@ ELEMENT_ID is like ORC.7.10.1"
           (forward-line 1)))
       root)))
 
+;;;###autoload
 (defun hl7-hier-add-annotation (hierarchy)
   "Add additional annotation to HIERARCHY's nodes."
   (hierarchy-map
